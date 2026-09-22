@@ -7,6 +7,6 @@
     public struct BuffDefinitionsOffset
     {
         [FieldOffset(0x00)] public IntPtr Name;
-        [FieldOffset(0x67)] public byte BuffType;
+        [FieldOffset(0x67)] public int BuffCategory;
     }
 }

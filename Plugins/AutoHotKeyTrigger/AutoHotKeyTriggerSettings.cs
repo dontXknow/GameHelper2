@@ -42,6 +42,8 @@ namespace AutoHotKeyTrigger
             this.ShouldRunInHideout = false;
             this.DumpStatusEffectOnMe = VK.F10;
             this.ScanUniqueInvulnMarkers = false;
+            this.PrioritizeManualInput = true;
+            this.ManualInputGraceSeconds = 0.25f;
         }
 
         /// <summary>
@@ -97,5 +99,17 @@ namespace AutoHotKeyTrigger
         ///     signal can be identified, then wired into a proper condition.
         /// </summary>
         public bool ScanUniqueInvulnMarkers;
+
+        /// <summary>
+        ///     Gets a value indicating whether physical keyboard and mouse input temporarily
+        ///     pauses normal profile rules.
+        /// </summary>
+        public bool PrioritizeManualInput;
+
+        /// <summary>
+        ///     Gets the time normal profile rules remain paused after all physical inputs are
+        ///     released.
+        /// </summary>
+        public float ManualInputGraceSeconds;
     }
 }

@@ -70,6 +70,23 @@ namespace AutoHotKeyTrigger
                 ImGuiHelper.ToolTip(this.PluginText.T("settings.debug_mode.tooltip", "The debug mode may prove to be a helpful tool in troubleshooting Auto HotKey Trigger profile rules that are not preforming as expected. " +
                                     "It can also be used to verify if AutoHotKeyTrigger is spamming the profile rule action or not based on the included conditions of a given profile rule. " +
                                     "It is highly suggested to create and test all new profiles/rules with the debug mode turned on to insure that all rules are preforming as expected."));
+                ImGui.Checkbox(
+                    this.PluginText.Label("settings.prioritize_manual_input", "Prioritize manual input", "AhkPrioritizeManualInput"),
+                    ref this.Settings.PrioritizeManualInput);
+                ImGuiHelper.ToolTip(this.PluginText.T(
+                    "settings.prioritize_manual_input.tooltip",
+                    "Pauses normal profile rules while a physical keyboard or mouse button is held, then waits for the configured grace period. AutoQuit is not affected."));
+                if (this.Settings.PrioritizeManualInput)
+                {
+                    ImGui.SetNextItemWidth(ImGui.GetFontSize() * 7);
+                    ImGui.DragFloat(
+                        this.PluginText.Label("settings.manual_input_grace", "Input grace period (seconds)", "AhkManualInputGrace"),
+                        ref this.Settings.ManualInputGraceSeconds,
+                        0.01f,
+                        0,
+                        2);
+                }
+
                 ImGuiHelper.NonContinuousEnumComboBox(this.PluginText.Label("settings.dump_status_effects", "Dump Player Status Effects", "AhkDumpStatusEffects"),
                     ref this.Settings.DumpStatusEffectOnMe);
                 ImGuiHelper.ToolTip(this.PluginText.T("settings.dump_status_effects.tooltip", "This hotkey will dump the current active player's buff(s), debuff(s) into a text file in the GameHelper -> Plugins -> " +
@@ -222,7 +239,10 @@ namespace AutoHotKeyTrigger
                     var data = "===========================================" + Environment.NewLine;
                     foreach (var statusEffect in buff.StatusEffects)
                     {
-                        data += $"{statusEffect.Key} {statusEffect.Value}\n";
+                        var category = buff.StatusEffectCategories.TryGetValue(statusEffect.Key, out var value)
+                            ? value.ToString()
+                            : "unknown";
+                        data += $"{statusEffect.Key} Category: {category} {statusEffect.Value}\n";
                     }
 
                     if (!string.IsNullOrEmpty(data))
@@ -257,6 +277,17 @@ namespace AutoHotKeyTrigger
                 this.debugMessage = "Chat window is active, so can not drink flasks or trigger skills.";
                 return;
             }
+
+            if (this.Settings.PrioritizeManualInput &&
+                ManualInputPriority.ShouldPause(this.Settings.ManualInputGraceSeconds))
+            {
+                this.debugMessage = this.PluginText.T(
+                    "debug.manual_input_priority",
+                    "Manual input has priority; normal rules are temporarily paused.");
+                return;
+            }
+
+            this.debugMessage = string.Empty;
 
             foreach (var rule in this.Settings.Profiles[this.Settings.CurrentProfile].Rules)
             {

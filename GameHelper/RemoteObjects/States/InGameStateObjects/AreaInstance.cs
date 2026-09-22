@@ -329,7 +329,12 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
                         syntheticEffect.Charges = (short)Math.Min(
                             short.MaxValue,
                             definition.StageToStacks(syntheticEffect.RawStage));
-                        playerBuffs.AddSyntheticStatusEffect(statusEffect.Key, syntheticEffect);
+                        var category = entityBuffs.StatusEffectCategories.TryGetValue(
+                            statusEffect.Key,
+                            out var statusEffectCategory)
+                                ? statusEffectCategory
+                                : (int?)null;
+                        playerBuffs.AddSyntheticStatusEffect(statusEffect.Key, syntheticEffect, category);
                     }
                 }
             }

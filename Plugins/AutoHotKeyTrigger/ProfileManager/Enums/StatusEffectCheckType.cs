@@ -24,8 +24,18 @@ namespace AutoHotKeyTrigger.ProfileManager.Enums
         PercentTimeLeft,
 
         /// <summary>
+        ///     Check the total duration of the status effect.
+        /// </summary>
+        TotalTime,
+
+        /// <summary>
         ///     Check buff charges
         /// </summary>
-        Charges
+        Charges,
+
+        /// <summary>
+        ///     Check the raw effectiveness value reported by the game.
+        /// </summary>
+        Effectiveness
     }
 }

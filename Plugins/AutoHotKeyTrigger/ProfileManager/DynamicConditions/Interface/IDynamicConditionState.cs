@@ -26,6 +26,16 @@ namespace AutoHotKeyTrigger.ProfileManager.DynamicConditions.Interface
         int PlayerAnimation { get; }
 
         /// <summary>
+        ///     Gets a value indicating whether the player is currently moving.
+        /// </summary>
+        bool PlayerIsMoving { get; }
+
+        /// <summary>
+        ///     Gets the time in seconds since player movement was last detected.
+        /// </summary>
+        double PlayerStationarySeconds { get; }
+
+        /// <summary>
         ///     The player skill useability status.
         /// </summary>
         HashSet<string> PlayerSkillIsUseable { get; }
@@ -166,6 +176,43 @@ namespace AutoHotKeyTrigger.ProfileManager.DynamicConditions.Interface
         ///     Detect a keypress event
         /// </summary>
         bool IsKeyPressedForAction(VK vk);
+
+        /// <summary>
+        ///     Detect whether a keyboard or mouse key is currently held down.
+        /// </summary>
+        bool IsKeyDownForAction(VK vk);
+
+        /// <summary>
+        ///     Gets a value indicating whether Barrage currently empowers the next attack.
+        /// </summary>
+        bool BarrageIsEmpowered { get; }
+
+        /// <summary>
+        ///     Gets a value indicating whether Barrage is currently off cooldown.
+        /// </summary>
+        bool BarrageIsUsable { get; }
+
+        /// <summary>
+        ///     Gets the player's current number of Frenzy Charges.
+        /// </summary>
+        int BarrageCurrentFrenzyCharges { get; }
+
+        /// <summary>
+        ///     Gets the number of Frenzy Charges used to create the active Barrage empowerment.
+        /// </summary>
+        int BarrageEmpoweredFrenzyCharges { get; }
+
+        /// <summary>
+        ///     Gets a value indicating whether the current Frenzy Charges would produce a stronger
+        ///     Barrage empowerment than the active one.
+        /// </summary>
+        bool BarrageUpgradeAvailable { get; }
+
+        /// <summary>
+        ///     Determines whether Barrage should be used now.
+        /// </summary>
+        /// <param name="minimumFrenzyCharges">Minimum current Frenzy Charges required.</param>
+        bool ShouldUseBarrage(int minimumFrenzyCharges);
 
         /// <summary>
         ///     Gets the value indicating if first weapon set is active or not.

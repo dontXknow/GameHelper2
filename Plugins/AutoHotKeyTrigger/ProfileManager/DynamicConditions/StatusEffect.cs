@@ -23,7 +23,9 @@ namespace AutoHotKeyTrigger.ProfileManager.DynamicConditions
             this.Exists
                 ? double.IsPositiveInfinity(this.TimeLeft)
                       ? 100
-                      : 100 * (this.TimeLeft / this.TotalTime)
+                      : this.TotalTime > 0
+                            ? 100 * (this.TimeLeft / this.TotalTime)
+                            : 0
                 : 0;
     }
 }

@@ -24,9 +24,19 @@ namespace AutoHotKeyTrigger.ProfileManager.Enums
         ANIMATION,
 
         /// <summary>
-        ///     Condition based on player PlayerBuffs/Debuffs.
+        ///     Condition based on whether the player is currently moving.
         /// </summary>
-        STATUS_EFFECT,
+        MOVEMENT,
+
+        /// <summary>
+        ///     Condition based on a positive player status effect.
+        /// </summary>
+        BUFF,
+
+        /// <summary>
+        ///     Condition based on a negative player status effect.
+        /// </summary>
+        DEBUFF,
 
         /// <summary>
         ///     Condition based on flask mod active on player or not.
@@ -79,6 +89,17 @@ namespace AutoHotKeyTrigger.ProfileManager.Enums
         ///     Condition based on the user pressing of mouse/keyboard key.
         /// </summary>
         ON_KEY_PRESSED_FOR_ACTION,
+
+        /// <summary>
+        ///     Condition based on whether a keyboard or mouse key is currently held down.
+        /// </summary>
+        KEY_STATE,
+
+        /// <summary>
+        ///     Smart Barrage activation based on cooldown, current Frenzy Charges and the
+        ///     strength of the already active Barrage empowerment.
+        /// </summary>
+        BARRAGE,
 
         /// <summary>
         ///     Condition based on the Player currently active weapon set.

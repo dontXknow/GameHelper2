@@ -30,6 +30,12 @@ namespace GameHelper.RemoteObjects.Components
         /// </summary>
         public ConcurrentDictionary<string, StatusEffectStruct> StatusEffects { get; } = new();
 
+        /// <summary>
+        ///     Gets the BuffDefinitions.dat category for each status effect in
+        ///     <see cref="StatusEffects"/>.
+        /// </summary>
+        public ConcurrentDictionary<string, int> StatusEffectCategories { get; } = new();
+
         public bool[] FlaskActive { get; private set; } = new bool[5];
 
         /// <inheritdoc />
@@ -43,6 +49,11 @@ namespace GameHelper.RemoteObjects.Components
                     if (ImGui.TreeNode($"{kv.Key}"))
                     {
                         ImGuiHelper.DisplayTextAndCopyOnClick($"Name: {kv.Key}", kv.Key);
+                        if (this.StatusEffectCategories.TryGetValue(kv.Key, out var category))
+                        {
+                            ImGui.Text($"Category: {category}");
+                        }
+
                         ImGuiHelper.IntPtrToImGui("BuffDefinationPtr", kv.Value.BuffDefinationPtr);
                         ImGuiHelper.DisplayFloatWithInfinitySupport("Total Time:", kv.Value.TotalTime);
                         ImGuiHelper.DisplayFloatWithInfinitySupport("Time Left:", kv.Value.TimeLeft);
@@ -67,6 +78,7 @@ namespace GameHelper.RemoteObjects.Components
             var data = reader.ReadMemory<BuffsOffsets>(this.Address);
             this.OwnerEntityAddress = data.Header.EntityPtr;
             this.StatusEffects.Clear();
+            this.StatusEffectCategories.Clear();
             var statusEffects = reader.ReadStdVector<IntPtr>(data.StatusEffectPtr);
             Array.Fill(this.FlaskActive, false);
 
@@ -107,13 +119,13 @@ namespace GameHelper.RemoteObjects.Components
                     out _,
                     out var skillGemUnknownId);
 
-                var (effectName, effectType) = ((string, byte))Core.GgpkObjectCache.AddOrGetExisting(
+                var (effectName, effectCategory) = ((string, int))Core.GgpkObjectCache.AddOrGetExisting(
                     statusEffectData.BuffDefinationPtr, key =>
                     {
                         return this.GetNameFromBuffDefination(key);
                     });
 
-                if (effectType != 0x4) // Flask Effect Type is 4.
+                if (effectCategory != 0x4) // Flask category is 4.
                 {
                     statusEffectData.FlaskSlot = -1;
                 }
@@ -127,6 +139,7 @@ namespace GameHelper.RemoteObjects.Components
                     effectName += $"_{skillGemUnknownId:X}";
                 }
 
+                this.StatusEffectCategories[effectName] = effectCategory;
                 this.StatusEffects.AddOrUpdate(effectName, statusEffectData, (key, oldValue) =>
                 {
                     var incomingStacks = statusEffectData.Charges > 0 ? statusEffectData.Charges : (short)1;
@@ -144,19 +157,25 @@ namespace GameHelper.RemoteObjects.Components
         /// </summary>
         /// <param name="effectName">Name used by normal status-effect consumers.</param>
         /// <param name="statusEffectData">Status-effect data with its stage represented as charges.</param>
-        internal void AddSyntheticStatusEffect(string effectName, StatusEffectStruct statusEffectData)
+        /// <param name="category">Optional BuffDefinitions.dat category.</param>
+        internal void AddSyntheticStatusEffect(string effectName, StatusEffectStruct statusEffectData, int? category = null)
         {
+            if (category.HasValue)
+            {
+                this.StatusEffectCategories[effectName] = category.Value;
+            }
+
             this.StatusEffects.AddOrUpdate(effectName, statusEffectData, (_, oldValue) =>
             {
                 return statusEffectData.Charges > oldValue.Charges ? statusEffectData : oldValue;
             });
         }
 
-        private (string, byte) GetNameFromBuffDefination(IntPtr addr)
+        private (string, int) GetNameFromBuffDefination(IntPtr addr)
         {
             var reader = Core.Process.Handle;
             var data = reader.ReadMemory<BuffDefinitionsOffset>(addr);
-            return (reader.ReadUnicodeString(data.Name), data.BuffType);
+            return (reader.ReadUnicodeString(data.Name), data.BuffCategory);
         }
     }
 }

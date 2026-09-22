@@ -24,7 +24,9 @@ namespace AutoHotKeyTrigger.ProfileManager.Templates
             {
                 ConditionType.VITALS => VitalTemplate.Add(),
                 ConditionType.ANIMATION => AnimationTemplate.Add(),
-                ConditionType.STATUS_EFFECT => StatusEffectTemplate.Add(),
+                ConditionType.MOVEMENT => MovementTemplate.Add(),
+                ConditionType.BUFF => StatusEffectTemplate.Add(StatusEffectTemplate.Filter.Buff),
+                ConditionType.DEBUFF => StatusEffectTemplate.Add(StatusEffectTemplate.Filter.Debuff),
                 ConditionType.FLASK_IS_ACTIVE => FlaskActiveTemplate.Add(),
                 ConditionType.FLASK_CHARGES => FlaskChargesTemplate.Add(),
                 ConditionType.AILMENT => AilmentTemplate.Add(),
@@ -35,6 +37,8 @@ namespace AutoHotKeyTrigger.ProfileManager.Templates
                 ConditionType.NEARBY_MONSTER_COUNT => NearbyMonsterTemplate.Add(),
                 ConditionType.NEARBY_MONSTER_COUNT_IN_RANGE => NearbyMonsterInRangeTemplate.Add(),
                 ConditionType.ON_KEY_PRESSED_FOR_ACTION => IsKeyPressedTemplate.Add(),
+                ConditionType.KEY_STATE => KeyStateTemplate.Add(),
+                ConditionType.BARRAGE => BarrageTemplate.Add(),
                 ConditionType.WEAPON_SET_ACTIVE => WeaponSetActiveTemplate.Add(),
                 ConditionType.SHAPESHIFTED => ShapeShiftedTemplate.Add(),
                 _ => throw new Exception($"{conditionType} not implemented in ConditionHelper class")
