@@ -5,6 +5,7 @@
 namespace GameHelper.RemoteObjects.Components
 {
     using System;
+    using GameOffsets.Natives;
     using GameOffsets.Objects.Components;
     using ImGuiNET;
 
@@ -59,11 +60,10 @@ namespace GameHelper.RemoteObjects.Components
             this.BaseItemName = string.Empty;
             if (data.DisplayNameRowPtr != IntPtr.Zero)
             {
-                var namePtr = reader.ReadMemory<IntPtr>(data.DisplayNameRowPtr + BaseOffsets.DisplayNameOffset);
-                if (namePtr != IntPtr.Zero)
-                {
-                    this.BaseItemName = reader.ReadUnicodeString(namePtr);
-                }
+                // This field is a std::wstring, not an unconditional character pointer.
+                // Short names such as Gold are stored inline (length 4, capacity 7).
+                var name = reader.ReadMemory<StdWString>(data.DisplayNameRowPtr + BaseOffsets.DisplayNameOffset);
+                this.BaseItemName = reader.ReadStdWString(name);
             }
 
             this.InternalName = string.Empty;

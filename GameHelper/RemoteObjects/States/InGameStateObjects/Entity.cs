@@ -40,6 +40,7 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
         private int dormantCheckSkip;
         private int unresolvedRetryCount;
         private int consecutiveInvalidFrames;
+        private IntPtr componentDetailsAddress;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="Entity" /> class.
@@ -330,7 +331,15 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
         protected bool UpdateComponentData(ItemStruct idata, bool refreshComponentMap)
         {
             var reader = Core.Process.Handle;
-            if (refreshComponentMap)
+            if (!SafeMemoryHandle.IsValidAddress(idata.EntityDetailsPtr) ||
+                (idata.EntityDetailsPtr.ToInt64() & 7) != 0)
+            {
+                return false;
+            }
+
+            // Allocators can reuse the same entity address for another object. Refresh
+            // cached names/components when its metadata identity changes at that address.
+            if (refreshComponentMap || this.componentDetailsAddress != idata.EntityDetailsPtr)
             {
                 this.componentAddresses.Clear();
                 this.componentCache.Clear();
@@ -374,6 +383,8 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
                         }
                     }
                 }
+
+                this.componentDetailsAddress = idata.EntityDetailsPtr;
             }
             else
             {
@@ -390,11 +401,33 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
             return true;
         }
 
+        /// <summary>
+        ///     Invalidates a failed component refresh so cached identity cannot be reported
+        ///     as current. The same address is retried when its metadata becomes readable.
+        /// </summary>
+        protected void InvalidateComponentData()
+        {
+            this.IsValid = false;
+            this.Path = string.Empty;
+            this.zone = NearbyZones.None;
+            this.customGroup = 0;
+            this.oldSubtypeWithoutPOI = EntitySubtypes.None;
+            this.dormantCheckSkip = 0;
+            this.componentAddresses.Clear();
+            this.componentCache.Clear();
+            this.componentDetailsAddress = IntPtr.Zero;
+            this.EntityType = EntityTypes.Unidentified;
+            this.EntitySubtype = EntitySubtypes.Unidentified;
+            this.EntityState = EntityStates.None;
+            this.unresolvedRetryCount = 0;
+        }
+
         /// <inheritdoc />
         protected override void CleanUpData()
         {
             this.componentAddresses?.Clear();
             this.componentCache?.Clear();
+            this.componentDetailsAddress = IntPtr.Zero;
 
             // Address set to Zero means this slot no longer points at an entity (e.g. nothing
             // hovered, or player left the area). Reset the observable identity back to the empty
@@ -482,7 +515,11 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
 
             if (!this.UpdateComponentData(entityData.ItemBase, shouldRefreshComponentMap))
             {
-                this.UpdateComponentData(entityData.ItemBase, true);
+                if (shouldRefreshComponentMap || !this.UpdateComponentData(entityData.ItemBase, true))
+                {
+                    this.InvalidateComponentData();
+                    return;
+                }
             }
 
             if (this.EntityType == EntityTypes.Unidentified)

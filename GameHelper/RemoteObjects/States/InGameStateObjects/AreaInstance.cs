@@ -485,6 +485,11 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
                 (tileNumber, _, localstate) =>
                 {
                     var tile = tileData[tileNumber];
+                    if (tile.TgtFilePtr == IntPtr.Zero)
+                    {
+                        return localstate;
+                    }
+
                     var tgtFile = reader.ReadMemory<TgtFileStruct>(tile.TgtFilePtr);
                     var tgtName = reader.ReadStdWString(tgtFile.TgtPath);
                     if (string.IsNullOrEmpty(tgtName))
@@ -557,6 +562,11 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
             Parallel.For(0, tileData.Length, index =>
             {
                 var val = tileData[index];
+                if (val.SubTileDetailsPtr == IntPtr.Zero)
+                {
+                    return;
+                }
+
                 subTileHeightCache.AddOrUpdate(
                     val.SubTileDetailsPtr,
                     addr =>

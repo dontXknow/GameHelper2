@@ -19,3 +19,10 @@ Plugins/SekhemaHelper
 Plugins/StashUtility
 
 POE2Radar
+
+# Local captures, runtime copies, reports, and generated verification output.
+/Verification/Artifacts/
+/Verification/PackageUpdate/
+/Verification/CombatFix/
+/Verification/UiTextFix/
+/Verification/RitualFix/

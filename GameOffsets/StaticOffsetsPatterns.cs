@@ -63,7 +63,10 @@
             // </HowToFindIt>
             new(
                 "AreaChangeCounter",
-                "FF 05 ^ ?? ?? ?? ?? 4D 8B 06"
+                // The shorter pattern also matches bytes inside an unrelated SAR/MOV
+                // sequence in the 2026-11-02 client. Include the following LEA to
+                // retain the real increment instruction and its RIP-relative target.
+                "FF 05 ^ ?? ?? ?? ?? 4D 8B 06 49 8D 50 20"
             ),
 
             // <HowToFindIt>

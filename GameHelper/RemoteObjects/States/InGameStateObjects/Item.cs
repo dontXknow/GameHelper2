@@ -41,9 +41,13 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
             this.IsValid = true;
             this.EntityType = EntityTypes.Item;
             this.EntitySubtype = EntitySubtypes.InventoryItem;
-            if (!this.UpdateComponentData(itemData, hasAddressChanged))
+            var refreshComponentMap = hasAddressChanged || string.IsNullOrEmpty(this.Path);
+            if (!this.UpdateComponentData(itemData, refreshComponentMap))
             {
-                this.UpdateComponentData(itemData, true);
+                if (refreshComponentMap || !this.UpdateComponentData(itemData, true))
+                {
+                    this.InvalidateComponentData();
+                }
             }
         }
     }

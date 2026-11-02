@@ -97,6 +97,14 @@ namespace GameHelper.Plugin
                 return false;
             }
 
+            // Reward/UI slots can expose an item-shaped candidate before its metadata
+            // is populated. Reject that candidate without dereferencing address zero.
+            if (item.EntityDetailsPtr == IntPtr.Zero)
+            {
+                failureReason = "item metadata not ready";
+                return false;
+            }
+
             if (!reader.TryReadMemory<EntityDetails>(item.EntityDetailsPtr, out var details))
             {
                 failureReason = "EntityDetails unreadable";

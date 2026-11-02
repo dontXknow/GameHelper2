@@ -302,6 +302,13 @@ namespace GameHelper.Utils
             }
             else
             {
+                // UI scans can observe a missing heap buffer while a panel is rebuilt.
+                // Keep the empty-text result without attempting to read address zero.
+                if (nativecontainer.Buffer == IntPtr.Zero)
+                {
+                    return string.Empty;
+                }
+
                 var buffer = this.ReadMemoryArray<byte>(nativecontainer.Buffer, nativecontainer.Length * 2);
                 return Encoding.Unicode.GetString(buffer);
             }
@@ -367,25 +374,34 @@ namespace GameHelper.Utils
             where TKey : unmanaged
             where TValue : unmanaged
         {
-            if (nativeContainer.Size <= 0 || nativeContainer.Size > maxSizeAllowed)
+            if (nativeContainer.Size <= 0 || nativeContainer.Size > maxSizeAllowed ||
+                !isNodeAddress(nativeContainer.Head))
             {
                 return 0;
             }
 
-            var head = this.ReadMemory<StdMapNode<TKey, TValue>>(nativeContainer.Head);
-            var parent = this.ReadMemory<StdMapNode<TKey, TValue>>(head.Parent);
-            var first64Childrens = new Queue<StdMapNode<TKey, TValue>>(64);
+            // A disappearing tree can leave a readable header with a null/stale root.
+            // Do not turn a failed root read into a default node and invoke the callback
+            // with its zero key/value. Genuine failures still reach memory diagnostics.
+            if (!this.TryReadMemory<StdMapNode<TKey, TValue>>(nativeContainer.Head, out var head) ||
+                !head.IsNil || head.Parent == nativeContainer.Head || !isNodeAddress(head.Parent) ||
+                !this.TryReadMemory<StdMapNode<TKey, TValue>>(head.Parent, out var parent) ||
+                parent.IsNil || parent.Color > 1 || parent.Parent != nativeContainer.Head)
+            {
+                return 0;
+            }
+            var first64Childrens = new Queue<(IntPtr Address, StdMapNode<TKey, TValue> Node)>(64);
 
             // processing first 63 nodes will gives us 64 childrens
             // in the first64Childrens list (assuming there is no node with just 1 child).
             // TODO: Benchmark 64 childrens
-            var totalChildrenProcessed = processSubTree(first64Childrens, parent, 64);
+            var totalChildrenProcessed = processSubTree(first64Childrens, (head.Parent, parent), 64);
 
             // then Parallel.ForEach loop will process those 32 childrens in parallel
             Parallel.ForEach(first64Childrens,
                 new ParallelOptions() { MaxDegreeOfParallelism = Core.GHSettings.EntityReaderMaxDegreeOfParallelism },
                 // executed once per task/thread
-                () => { return (new Queue<StdMapNode<TKey, TValue>>(2000), new int()); },
+                () => { return (new Queue<(IntPtr Address, StdMapNode<TKey, TValue> Node)>(2000), new int()); },
                 // executed once per iteration
                 (first32Child, _, _, localState) =>
                 {
@@ -403,12 +419,19 @@ namespace GameHelper.Utils
 
             return totalChildrenProcessed;
 
-            void processNode(Queue<StdMapNode<TKey, TValue>> childrens, StdMapNode<TKey, TValue> current)
+            static bool isNodeAddress(IntPtr address) => IsValidAddress(address) && (address.ToInt64() & 7) == 0;
+
+            void processNode(
+                Queue<(IntPtr Address, StdMapNode<TKey, TValue> Node)> childrens,
+                (IntPtr Address, StdMapNode<TKey, TValue> Node) entry)
             {
-                if (!current.IsNil)
+                var current = entry.Node;
+                if (current.IsNil || current.Color > 1)
                 {
-                    onEachNotNullNode(current.Data.Key, current.Data.Value);
+                    return;
                 }
+
+                onEachNotNullNode(current.Data.Key, current.Data.Value);
 
                 // Child pointers are read from a live tree the game mutates concurrently, so a
                 // torn read can yield a non-pointer value. Use the non-logging read + validity
@@ -416,20 +439,27 @@ namespace GameHelper.Utils
                 // Color is the red/black flag and is always 0 or 1 in a real node; if a torn/bad
                 // pointer lands us on string or float data, Color is almost never 0/1, so this
                 // rejects garbage before we descend into it and propagate the failure further.
-                if (this.TryReadMemory<StdMapNode<TKey, TValue>>(current.Left, out var leftChild) &&
-                    !leftChild.IsNil && leftChild.Color <= 1)
+                // A recycled allocation may retain plausible color/nil bytes. Require the
+                // child's parent link to identify this exact node before using its payload.
+                if (current.Left != nativeContainer.Head && isNodeAddress(current.Left) &&
+                    this.TryReadMemory<StdMapNode<TKey, TValue>>(current.Left, out var leftChild) &&
+                    !leftChild.IsNil && leftChild.Color <= 1 && leftChild.Parent == entry.Address)
                 {
-                    childrens.Enqueue(leftChild);
+                    childrens.Enqueue((current.Left, leftChild));
                 }
 
-                if (this.TryReadMemory<StdMapNode<TKey, TValue>>(current.Right, out var rightChild) &&
-                    !rightChild.IsNil && rightChild.Color <= 1)
+                if (current.Right != nativeContainer.Head && isNodeAddress(current.Right) &&
+                    this.TryReadMemory<StdMapNode<TKey, TValue>>(current.Right, out var rightChild) &&
+                    !rightChild.IsNil && rightChild.Color <= 1 && rightChild.Parent == entry.Address)
                 {
-                    childrens.Enqueue(rightChild);
+                    childrens.Enqueue((current.Right, rightChild));
                 }
             }
 
-            int processSubTree(Queue<StdMapNode<TKey, TValue>> childrens, StdMapNode<TKey, TValue> subTreeRoot, int forceBreakOnIteration)
+            int processSubTree(
+                Queue<(IntPtr Address, StdMapNode<TKey, TValue> Node)> childrens,
+                (IntPtr Address, StdMapNode<TKey, TValue> Node) subTreeRoot,
+                int forceBreakOnIteration)
             {
                 childrens.Enqueue(subTreeRoot);
                 var counter = 0;

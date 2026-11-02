@@ -6,6 +6,34 @@ Path of Exile 2; "0.5.x" references are the game patch the build targets.
 Sections marked **For plugin devs** describe newly exposed APIs you can read
 from your own plugins via `Core.*`.
 
+## [Unreleased]
+
+### Fixed
+
+- Read item display names as `std::wstring`, including inline names such as Gold.
+- Validate live entity-map roots, node alignment, and parent backlinks before
+  following branches; keep valid neighboring branches and failure diagnostics.
+- Invalidate failed entity/item component refreshes and rebuild cached metadata
+  when an allocation is reused at the same object address.
+- Skip missing optional terrain pointers and missing UI text buffers before
+  dereferencing them.
+- Reject Ritual/stash item candidates whose metadata is not ready while retaining
+  validation and pricing of other valid candidates.
+- Make the area-change signature unique by including the next LEA instruction.
+
+### Changed
+
+- Update Newtonsoft.Json to 13.0.4, System.Linq.Dynamic.Core to 1.7.4, and
+  AsmResolver to 6.0.1; adapt launcher resource insertion to the new API.
+- Retain ImageSharp 3.1.12. Its existing NuGet audit warnings remain visible;
+  this update does not claim to resolve them.
+
+### Added
+
+- Manual checks against staged assemblies for memory readers, UI transitions,
+  Ritual candidates, plugin loading, profile compilation, and launcher output.
+- A Codex `AGENTS.md` with build, memory-reader, verification, and Git guidance.
+
 ## [2.8.0] - 2026-09-15
 
 ### Added
