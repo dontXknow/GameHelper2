@@ -15,7 +15,7 @@
     <PackageReference Include="ImGui.NET" Version="1.91.6.1">
       <ExcludeAssets>runtime</ExcludeAssets>
     </PackageReference>
-    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.1" />
+    <PackageReference Include="System.Linq.Dynamic.Core" Version="1.7.4" />
   </ItemGroup>
 
   <ItemGroup>
