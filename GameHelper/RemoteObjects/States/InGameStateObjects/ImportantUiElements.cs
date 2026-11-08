@@ -53,12 +53,14 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
         private static readonly int[] RightPanelCoopPath = { 23 };
         private static readonly int[] TempleConsoleChildPath = { 64, 0 };
         private const int AtlasMapCacheRefreshFrames = 20;
-        private const int AtlasNodeBiomeIdOffset = 0x2BE;
-        private const int AtlasNodeStatusByteOffset = 0x2BF;
+        // PoE2 0.5.5f moved these fields, the grid and both content vectors by +0x10
+        // (yokkenUA/Atlas@20e4090, verified on that client).
+        private const int AtlasNodeBiomeIdOffset = 0x2CE;
+        private const int AtlasNodeStatusByteOffset = 0x2CF;
         // 0.5.5: the EndgameMaps row moved -0x10. The old +0x2A0 now points at the
         // node's atlas-passive row, producing generated-looking ids or an empty name.
         private const int AtlasNodeMapDataOffset = 0x290;
-        private const int AtlasNodeGridPositionOffset = 0x310;
+        private const int AtlasNodeGridPositionOffset = 0x320;
 
         // Atlas layout notes and offsets in this block are adapted from yokkenUA's Atlas plugin
         // reverse engineering (dfb52db through afecda4), based on live-memory inspection and
@@ -67,17 +69,17 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
         private const int AtlasNodeConnectionsVectorOffset = 0x590;
         private const int AtlasNodeContentNameOffset = 0x278;
 
-        // +0x350 is the separate vector<u32> content-token store. It contains alternating
+        // The separate vector<u32> content-token store contains alternating
         // {stat-row id, value} entries; expose them in the legacy packed form expected by
         // AtlasMapNode (value*64 in the high word, stat id in the low word).
-        private const int AtlasNodeContentVecOffset = 0x350;
+        private const int AtlasNodeContentVecOffset = 0x360;
 
-        // Unlike culled UI badge children, +0x368/+0x370 is a persistent sorted vector<u8> of
+        // Unlike culled UI badge children, this is a persistent sorted vector<u8> of
         // EndgameMapContent row indices. AtlasMapNodeWidget's constructor fills it from server
         // chunk cell-state, so it survives fog, off-screen culling, and sea nodes. The public id
-        // is row + 100. This vector does not contain the +0x350 token content.
-        private const int AtlasNodeBadgeVecBeginOffset = 0x368;
-        private const int AtlasNodeBadgeVecEndOffset = 0x370;
+        // is row + 100. The token vector is separate.
+        private const int AtlasNodeBadgeVecBeginOffset = 0x378;
+        private const int AtlasNodeBadgeVecEndOffset = 0x380;
         private const int AtlasNodeBadgeRowToContentId = 100;
         private const int AtlasNodeBadgeContentIdOffset = 0x170;
         private const byte AtlasNodeAccessibleBit = 0x01;
@@ -703,8 +705,7 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
                 return null;
             }
 
-            // +0x310 is the atlas-wide coordinate used by the panel's connection edges. The
-            // superficially similar pair at +0x320 is only local to the node's generated region.
+            // Use the atlas-wide grid coordinate shared with the panel's connection edges.
             if (!reader.TryReadMemory<StdTuple2D<int>>(nodeAddr + AtlasNodeGridPositionOffset, out var gridPosition) ||
                 !reader.TryReadMemory<byte>(nodeData + AtlasNodeBiomeIdOffset, out var biomeId) ||
                 !reader.TryReadMemory<byte>(nodeData + AtlasNodeStatusByteOffset, out var status))

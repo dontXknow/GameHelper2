@@ -27,17 +27,16 @@ namespace Atlas2
         // current numeric offsets.
         private const uint IsVisibleMask = 0x800;
 
-        // A selected line node has bit 20 set in the UiElement flags. The child pointer at +0x3B8
-        // leads to a text element whose std::wstring at +0x490 already contains the game's
-        // localized Rite-mod lines.
-        private const int RitualModsChildOffset = 0x3B8;
+        // A selected line node has bit 20 set in the UiElement flags. Its text child contains
+        // the localized Rite-mod lines. The child moved in 0.5.5f (yokkenUA/Atlas@20e4090).
+        private const int RitualModsChildOffset = 0x3F8;
         private const int TextElementTextOffset = 0x490;
 
         // Ritual state lives on the atlas node-list container: line mode is page mode 6, line id
         // is TinyMT seed word 0, and the two vectors contain clicked-but-pending and committed
         // atlas grid coordinates respectively.
         private const int PanelLineModeOffset = 0x61F;
-        private const int PanelLineIdOffset = 0x624;
+        private const int PanelLineIdOffset = 0x628;
         private const int PanelPendingVecOffset = 0x630;
         private const int PanelCommittedVecOffset = 0x648;
 
@@ -375,7 +374,7 @@ namespace Atlas2
         }
 
         // Read the panel's active atlas stats (id -> value, value!=0 only). Chain from
-        // ritualLineToggleNode: panel+X -> +0x1b0 -> +0x3a20 -> vector [+0x408 begin, +0x410 end],
+        // ritualLineToggleNode: panel+X -> +0x1b0 -> +0x3aa0 -> vector [+0x408 begin, +0x410 end],
         // stride 0x28 (10 int32): stat id @ +0x00, value @ +0x08. Gates the reservoir pool and gives
         // the line length (5 + map_ritual_rite_additional_maps, runtime stat id 0x670d).
         // The first hop is a UiElement field shifted from 0x320 to 0x308 in 0.5.5. Probe both
@@ -400,7 +399,7 @@ namespace Atlas2
             if (o1 == IntPtr.Zero) return stats;
             var o2 = Read<IntPtr>(IntPtr.Add(o1, 0x1b0));
             if (o2 == IntPtr.Zero) return stats;
-            var holder = Read<IntPtr>(IntPtr.Add(o2, 0x3a20));
+            var holder = Read<IntPtr>(IntPtr.Add(o2, 0x3aa0));
             if (holder == IntPtr.Zero) return stats;
             var begin = Read<IntPtr>(IntPtr.Add(holder, 0x408));
             var end = Read<IntPtr>(IntPtr.Add(holder, 0x410));
