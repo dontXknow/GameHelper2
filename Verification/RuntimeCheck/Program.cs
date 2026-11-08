@@ -34,14 +34,14 @@ namespace RuntimeCheck
                 var expectedArguments = args.FirstOrDefault() switch
                 {
                     "smoke" or "reader-tests" => 3,
-                    "probe" or "entities" or "layouts" or "base-live" => 4,
+                    "probe" or "entities" or "atlas-live" or "layouts" or "base-live" => 4,
                     _ => 0,
                 };
                 if (expectedArguments == 0 || args.Length != expectedArguments)
                 {
                     throw new ArgumentException(
                         "Usage: RuntimeCheck <smoke|reader-tests> <runtime-dir> <output-dir>\n" +
-                        "       RuntimeCheck <probe|entities|base-live> <runtime-dir> <pid> <output-dir>\n" +
+                        "       RuntimeCheck <probe|entities|atlas-live|base-live> <runtime-dir> <pid> <output-dir>\n" +
                         "       RuntimeCheck layouts <baseline-runtime-dir> <updated-offsets-dll> <output-dir>");
                 }
 
@@ -51,6 +51,7 @@ namespace RuntimeCheck
                 if (args[0] == "smoke") { Smoke(args[2]); }
                 else if (args[0] == "probe") { Probe(int.Parse(args[2]), args[3]); }
                 else if (args[0] == "entities") { Probe(int.Parse(args[2]), args[3], true); }
+                else if (args[0] == "atlas-live") { Probe(int.Parse(args[2]), args[3], inspectAtlas: true); }
                 else if (args[0] == "layouts") { CompareLayouts(args[2], args[3]); }
                 else if (args[0] == "reader-tests") { ReaderTests(args[2]); }
                 else if (args[0] == "base-live") { BaseLive(int.Parse(args[2]), args[3]); }
@@ -179,7 +180,7 @@ namespace RuntimeCheck
             foreach (var result in results) { Console.WriteLine(result); }
         }
 
-        private static void Probe(int processId, string evidence, bool inspectEntities = false)
+        private static void Probe(int processId, string evidence, bool inspectEntities = false, bool inspectAtlas = false)
         {
             using var process = Process.GetProcessById(processId);
             var module = process.MainModule ?? throw new InvalidOperationException("Game module unavailable.");
@@ -193,6 +194,7 @@ namespace RuntimeCheck
                 using var pe = new PEReader(stream);
                 var matches = new List<object>();
                 long gameStatesTarget = 0;
+                int liveGameStatesMatches = 0;
                 foreach (var pattern in StaticOffsetsPatterns.Patterns)
                 {
                     var hits = new List<object>();
@@ -212,7 +214,11 @@ namespace RuntimeCheck
                             var live = Read(handle, imageBase + rva, pattern.Data.Length);
                             var valid = checks.All(j => live[j] == pattern.Data[j]);
                             var target = imageBase + rva + pattern.BytesToSkip + 4 + BitConverter.ToInt32(live, pattern.BytesToSkip);
-                            if (pattern.Name == "Game States") { gameStatesTarget = target; }
+                            if (pattern.Name == "Game States" && valid)
+                            {
+                                gameStatesTarget = target;
+                                liveGameStatesMatches++;
+                            }
                             string? value = null;
                             string? error = null;
                             try { value = Convert.ToHexString(Read(handle, target, 32)); }
@@ -221,6 +227,14 @@ namespace RuntimeCheck
                         }
                     }
                     matches.Add(new { pattern.Name, Count = hits.Count, Hits = hits });
+                }
+                if (inspectAtlas)
+                {
+                    if (liveGameStatesMatches != 1) { throw new InvalidDataException("The live Game States signature must match exactly once."); }
+                    var state = ReadStruct<GameStateStaticOffset>(handle, gameStatesTarget);
+                    var inGame = ReadStruct<GameStateOffset>(handle, state.GameState.ToInt64()).States[4].X;
+                    AtlasLive(processId, Path.GetFullPath(evidence), inGame);
+                    return;
                 }
                 var structures = new Dictionary<string, object>();
                 try { ProbeStructures(handle, gameStatesTarget, structures, inspectEntities); }

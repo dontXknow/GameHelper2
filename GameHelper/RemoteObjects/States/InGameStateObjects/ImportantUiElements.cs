@@ -35,16 +35,18 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
     /// </summary>
     public class ImportantUiElements : RemoteObjectBase
     {
-        private static readonly int[] WorldMapPanelChildPath = { 22, 0 };
+        // The 0.5.5f world-map group is child 21. Its atlas node list is at 21/0/6,
+        // verified by the map-widget flags and grid coordinates.
+        private static readonly int[] WorldMapPanelChildPath = { 21, 0 };
         private static readonly int[] LargeMapViewportChildPath = { 6, 0 };
         private static readonly int[] MiniMapViewportChildPath = { 6, 1 };
         private static readonly int[] PassiveSkillTreeNodesChildPath = { 24, 2 };
-        private static readonly int[] Act1PanelChildPath = { 22, 0, 0 };
-        private static readonly int[] Act2PanelChildPath = { 22, 0, 1 };
-        private static readonly int[] Act3PanelChildPath = { 22, 0, 2 };
-        private static readonly int[] Act4PanelChildPath = { 22, 0, 3 };
-        private static readonly int[] InterludePanelChildPath = { 22, 0, 5 };
-        private static readonly int[] AtlasPanelChildPath = { 22, 0, 6 };
+        private static readonly int[] Act1PanelChildPath = { 21, 0, 0 };
+        private static readonly int[] Act2PanelChildPath = { 21, 0, 1 };
+        private static readonly int[] Act3PanelChildPath = { 21, 0, 2 };
+        private static readonly int[] Act4PanelChildPath = { 21, 0, 3 };
+        private static readonly int[] InterludePanelChildPath = { 21, 0, 5 };
+        private static readonly int[] AtlasPanelChildPath = { 21, 0, 6 };
         private static readonly int[] AtlasSkillsPanelChildPath = { 25, 0 };
         private static readonly int[] CurrencyExchangePanelChildPath = { 114, 20, 6, 1 };
         private static readonly int[] GemcuttingPanelChildPath = { 53, 3 };

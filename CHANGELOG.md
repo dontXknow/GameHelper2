@@ -12,6 +12,8 @@ from your own plugins via `Core.*`.
 
 - Update Atlas node layout and Ritual line reads for the PoE2 0.5.5f client,
   based on [yokkenUA's Atlas findings](https://github.com/yokkenUA/Atlas/commit/20e4090f303767ed259432d59328cbb721ca5b41).
+- Restore the 0.5.5f world-map/Atlas UI path, area-change signature, and live
+  area reads for the local player, entities, and terrain.
 - Read item display names as `std::wstring`, including inline names such as Gold.
 - Validate live entity-map roots, node alignment, and parent backlinks before
   following branches; keep valid neighboring branches and failure diagnostics.

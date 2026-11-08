@@ -63,10 +63,10 @@
             // </HowToFindIt>
             new(
                 "AreaChangeCounter",
-                // The shorter pattern also matches bytes inside an unrelated SAR/MOV
-                // sequence in the 2026-11-02 client. Include the following LEA to
-                // retain the real increment instruction and its RIP-relative target.
-                "FF 05 ^ ?? ?? ?? ?? 4D 8B 06 49 8D 50 20"
+                // 0.5.5f: the increment still follows a call in the login-instance
+                // handler. Match the new register loads so unrelated FF 05 bytes
+                // inside other instructions cannot select the counter address.
+                "FF 05 ^ ?? ?? ?? ?? 49 8B 16 44 0F B6 8A A2 00 00 00 48 8D 4A 30"
             ),
 
             // <HowToFindIt>

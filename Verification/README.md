@@ -67,6 +67,7 @@ writes game memory.
 ```text
 RuntimeCheck probe <runtime-dir> <pid> <output-dir>
 RuntimeCheck entities <runtime-dir> <pid> <output-dir>
+RuntimeCheck atlas-live <runtime-dir> <pid> <output-dir>
 RuntimeCheck base-live <runtime-dir> <pid> <output-dir>
 RuntimeCheck layouts <baseline-runtime-dir> <updated-offsets-dll> <output-dir>
 ```
@@ -77,6 +78,9 @@ examines item-name/terrain data. `base-live` consumes an `entity-probe.json` fro
 the same output directory and checks production readers against live data; take
 a fresh capture when areas/allocations change. `layouts` compares type/field/
 constant layouts in two offset assemblies.
+
+With the endgame Atlas open, `atlas-live` checks the production reader's player
+Render component, panel visibility, map names, and distinct grid coordinates.
 
 A point-in-time live read does not establish behavior during prolonged combat,
 area changes, or opening/closing the actual UI. Keep those validation results

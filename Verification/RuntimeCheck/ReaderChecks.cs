@@ -297,6 +297,39 @@ namespace RuntimeCheck
             Console.WriteLine($"Production Base reader: {results.Count} live item names match; captured Gold row decoded as '{liveGold ?? "not checked"}'; production map reader: both full trees match their entity IDs; zero failed-read diagnostic entries.");
         }
 
+        private static void AtlasLive(int processId, string evidence, IntPtr inGameAddress)
+        {
+            using var session = new ReaderSession(processId, evidence);
+            var assembly = session.Reader.GetType().Assembly;
+            var core = assembly.GetType("GameHelper.Core", true)!;
+            var states = core.GetProperty("States")!.GetValue(null)!;
+            var inGame = states.GetType().GetProperty("InGameStateObject")!.GetValue(states)!;
+            inGame.GetType().GetProperty("Address")!.SetValue(inGame, inGameAddress);
+
+            var area = inGame.GetType().GetProperty("CurrentAreaInstance")!.GetValue(inGame)!;
+            var player = area.GetType().GetProperty("Player")!.GetValue(area)!;
+            var render = assembly.GetType("GameHelper.RemoteObjects.Components.Render", true)!;
+            var hasRender = (bool)player.GetType().GetMethod("TryGetComponent")!.MakeGenericMethod(render)
+                .Invoke(player, new object?[] { null, true })!;
+
+            var ui = inGame.GetType().GetProperty("GameUi")!.GetValue(inGame)!;
+            var atlas = ui.GetType().GetProperty("Atlas")!.GetValue(ui)!;
+            var visible = (bool)atlas.GetType().GetProperty("IsVisible")!.GetValue(atlas)!;
+            var children = (int)atlas.GetType().GetProperty("TotalChildrens")!.GetValue(atlas)!;
+            var maps = ((System.Collections.IEnumerable)ui.GetType().GetProperty("AtlasMaps")!.GetValue(ui)!)
+                .Cast<object>().ToArray();
+            var namedMaps = maps.Count(map => !string.IsNullOrEmpty((string)map.GetType().GetProperty("MapId")!.GetValue(map)!));
+            var grids = maps.Select(map => map.GetType().GetProperty("GridPosition")!.GetValue(map)).Distinct().Count();
+            var result = new { HasPlayerRender = hasRender, AtlasVisible = visible, Children = children, Maps = maps.Length, NamedMaps = namedMaps, DistinctGrids = grids };
+            var json = JsonConvert.SerializeObject(result, Formatting.Indented);
+            File.WriteAllText(Path.Combine(evidence, "atlas-live.json"), json);
+            Console.WriteLine(json);
+            if (!hasRender || !visible || namedMaps == 0 || grids < 2)
+            {
+                throw new InvalidDataException("Atlas data is incomplete. Run this check while the endgame Atlas is open in an active area.");
+            }
+        }
+
         private sealed class ReaderSession : IDisposable
         {
             private readonly string oldDirectory = Environment.CurrentDirectory;
