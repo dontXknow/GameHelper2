@@ -17,6 +17,7 @@ namespace RuntimeCheck
     using GameOffsets.Natives;
     using GameOffsets.Objects;
     using GameOffsets.Objects.Components;
+    using GameOffsets.Objects.FilesStructures;
     using GameOffsets.Objects.States;
     using GameOffsets.Objects.States.InGameState;
     using Newtonsoft.Json;
@@ -255,6 +256,26 @@ namespace RuntimeCheck
             result["GameStates"] = $"0x{states.GameState:X}";
             result["InGameState"] = $"0x{inGameAddress:X}";
             var inGame = ReadStruct<InGameStateOffset>(handle, inGameAddress);
+            if (inspectEntities)
+            {
+                try
+                {
+                    var loading = ReadStruct<AreaLoadingStateOffset>(handle, stateData.States[0].X.ToInt64());
+                    var world = ReadStruct<WorldDataOffset>(handle, inGame.WorldData.ToInt64());
+                    var worldDetails = ReadStruct<WorldAreaDetailsStruct>(handle, world.WorldAreaDetailsPtr.ToInt64());
+                    var row = ReadStruct<WorldAreaDatOffsets>(handle, worldDetails.WorldAreaDetailsRowPtr.ToInt64());
+                    result["WorldArea"] = new
+                    {
+                        Id = ReadString(handle, row.IdPtr.ToInt64(), true),
+                        Name = ReadString(handle, row.NamePtr.ToInt64(), true),
+                        row.IsTown,
+                        loading.IsLoading,
+                        loading.TotalLoadingScreenTimeMs,
+                        RowsMatch = loading.CurrentAreaDetailsPtr == worldDetails.WorldAreaDetailsRowPtr,
+                    };
+                }
+                catch (Exception e) { result["WorldAreaReadError"] = e.Message; }
+            }
             var mouse = new Dictionary<string, object> { ["Host"] = $"0x{inGame.MouseOverHostPtr:X}" };
             result["MouseOver"] = mouse;
             try
@@ -350,6 +371,7 @@ namespace RuntimeCheck
         {
             var samples = new List<object>();
             var items = new List<object>();
+            var wisps = new List<object>();
             var errors = new List<string>();
             if (map.Size < 0 || map.Size > 500000) { return new { Error = "Invalid map size", map.Size }; }
             if (map.Size == 0) { return new { map.Size }; }
@@ -373,6 +395,10 @@ namespace RuntimeCheck
                     var details = ReadStruct<EntityDetails>(handle, entity.ItemBase.EntityDetailsPtr.ToInt64());
                     var path = ReadWString(handle, entity.ItemBase.EntityDetailsPtr.ToInt64() + 8, details.name);
                     if (samples.Count < 15) { samples.Add(new { Key = node.Data.Key.id, EntityId = entity.Id, Entity = $"0x{node.Data.Value.EntityPtr:X}", Path = path }); }
+                    if (path.Contains("RitualWisp", StringComparison.OrdinalIgnoreCase))
+                    {
+                        wisps.Add(new { Key = node.Data.Key.id, EntityId = entity.Id, entity.IsValid, Path = path });
+                    }
                     if (items.Count < 40 && (path.Contains("Items", StringComparison.OrdinalIgnoreCase) || path.EndsWith("/WorldItem", StringComparison.Ordinal)))
                     {
                         var lookup = ReadStruct<ComponentLookUpStruct>(handle, details.ComponentLookUpPtr.ToInt64());
@@ -403,7 +429,7 @@ namespace RuntimeCheck
                 }
                 catch (Exception e) { if (errors.Count < 20) { errors.Add($"0x{address:X}: {e.Message}"); } }
             }
-            return new { map.Size, Head = $"0x{map.Head:X}", Visited = visited.Count, ValidNodes = validNodes, MatchingEntityIds = matchingIds, InvalidFlags = invalidFlags, Limited = pending.Count > 0, Errors = errors, Samples = samples, ItemSamples = items };
+            return new { map.Size, Head = $"0x{map.Head:X}", Visited = visited.Count, ValidNodes = validNodes, MatchingEntityIds = matchingIds, InvalidFlags = invalidFlags, Limited = pending.Count > 0, Errors = errors, Samples = samples, ItemSamples = items, RitualWisps = wisps };
         }
 
         private static object ProbeBase(IntPtr handle, long address, string path)

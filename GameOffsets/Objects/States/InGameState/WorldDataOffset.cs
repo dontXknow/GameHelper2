@@ -18,7 +18,8 @@ namespace GameOffsets.Objects.States.InGameState
     [StructLayout(LayoutKind.Explicit, Pack = 1)]
     public struct WorldAreaDetailsStruct
     {
-        [FieldOffset(0x98)] public IntPtr WorldAreaDetailsRowPtr; // WorldArea.dat Offsets
+        // 0.5.5f: this row matches the loading state's WorldArea.dat row after a transition.
+        [FieldOffset(0xA0)] public IntPtr WorldAreaDetailsRowPtr;
     }
 
     [StructLayout(LayoutKind.Explicit, Pack = 1)]

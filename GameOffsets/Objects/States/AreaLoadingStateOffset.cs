@@ -7,7 +7,8 @@ namespace GameOffsets.Objects.States
     public struct AreaLoadingStateOffset
     {
         [FieldOffset(0x770)] public int IsLoading; // save the structure data before, during and after area change loading screen
-        [FieldOffset(0xEC0)] public uint TotalLoadingScreenTimeMs; // increases when area changes
-        [FieldOffset(0xF40)] public IntPtr CurrentAreaDetailsPtr; // WorldArea.dat row.
+        // 0.5.5f: the timer advances across loading screens and this row matches the loaded area.
+        [FieldOffset(0xE20)] public uint TotalLoadingScreenTimeMs;
+        [FieldOffset(0xEA0)] public IntPtr CurrentAreaDetailsPtr; // WorldArea.dat row.
     }
 }

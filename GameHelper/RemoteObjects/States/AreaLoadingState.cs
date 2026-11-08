@@ -61,24 +61,30 @@ namespace GameHelper.RemoteObjects.States
         protected override void UpdateData(bool hasAddressChanged)
         {
             var reader = Core.Process.Handle;
-            var data = reader.ReadMemory<AreaLoadingStateOffset>(this.Address);
-            this.IsLoading = data.IsLoading == 0x01;
-            var hasAreaChanged = false;
-            if (data.CurrentAreaDetailsPtr != IntPtr.Zero &&
-                !this.IsLoading &&
-                data.TotalLoadingScreenTimeMs > this.lastCache.TotalLoadingScreenTimeMs)
+            if (!reader.TryReadMemory<AreaLoadingStateOffset>(this.Address, out var data))
             {
-                var areaDetails = reader.ReadMemory<WorldAreaDatOffsets>(data.CurrentAreaDetailsPtr);
-                var areaName = reader.ReadUnicodeString(areaDetails.NamePtr);
-                this.CurrentAreaName = areaName;
-                this.lastCache = data;
-                hasAreaChanged = true;
+                return;
             }
 
-            if (hasAreaChanged)
+            this.IsLoading = data.IsLoading == 0x01;
+            if (this.IsLoading ||
+                data.TotalLoadingScreenTimeMs <= this.lastCache.TotalLoadingScreenTimeMs ||
+                data.CurrentAreaDetailsPtr == IntPtr.Zero ||
+                !reader.TryReadMemory<WorldAreaDatOffsets>(data.CurrentAreaDetailsPtr, out var areaDetails) ||
+                areaDetails.NamePtr == IntPtr.Zero)
             {
-                CoroutineHandler.InvokeLater(new Wait(0.1d), () => { CoroutineHandler.RaiseEvent(RemoteEvents.AreaChanged); });
+                return;
             }
+
+            var areaName = reader.ReadUnicodeString(areaDetails.NamePtr);
+            if (string.IsNullOrEmpty(areaName))
+            {
+                return;
+            }
+
+            this.CurrentAreaName = areaName;
+            this.lastCache = data;
+            CoroutineHandler.InvokeLater(new Wait(0.1d), () => { CoroutineHandler.RaiseEvent(RemoteEvents.AreaChanged); });
         }
 
         private IEnumerator<Wait> OnPerFrame()

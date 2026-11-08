@@ -41,6 +41,7 @@ on that data. Cases cover:
 - Invalid component metadata, recovery at the same item address, and refreshed
   identity when metadata changes.
 - Missing terrain data with unchanged empty/flat output and retained valid tiles.
+- Delayed world-area rows and repeat transitions into the same area.
 
 Core initialization creates disposable configuration under
 `<output-dir>/ReaderTestIsolation`; it does not overwrite the selected runtime's
@@ -74,7 +75,8 @@ RuntimeCheck layouts <baseline-runtime-dir> <updated-offsets-dll> <output-dir>
 
 `probe` compares the six signatures against executable/live bytes and reads the
 core state chain. `entities` additionally walks bounded entity-map samples and
-examines item-name/terrain data. `base-live` consumes an `entity-probe.json` from
+examines item-name/terrain data, the world and loading-state area rows, and any
+Ritual wisp entities it encounters. `base-live` consumes an `entity-probe.json` from
 the same output directory and checks production readers against live data; take
 a fresh capture when areas/allocations change. `layouts` compares type/field/
 constant layouts in two offset assemblies.

@@ -19,7 +19,6 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
     /// </summary>
     public class WorldData : RemoteObjectBase
     {
-        private IntPtr areaDetailsPtrCache = IntPtr.Zero;
         /// <summary>
         ///     Wrapper for the World-to-Screen matrix. Wrapped in a sealed record
         ///     so we can swap it atomically via Volatile.Write — a 64-byte struct
@@ -155,7 +154,6 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
         /// <inheritdoc />
         protected override void CleanUpData()
         {
-            this.areaDetailsPtrCache = IntPtr.Zero;
             this.AreaDetails.Address = IntPtr.Zero;
             System.Threading.Volatile.Write(ref this.matrixSnap, new MatrixSnap(Matrix4x4.Identity));
         }
@@ -165,12 +163,12 @@ namespace GameHelper.RemoteObjects.States.InGameStateObjects
         {
             var reader = Core.Process.Handle;
             var data = reader.ReadMemory<WorldDataOffset>(this.Address);
-            if (this.areaDetailsPtrCache != data.WorldAreaDetailsPtr)
-            {
-                var areaInfo = reader.ReadMemory<WorldAreaDetailsStruct>(data.WorldAreaDetailsPtr);
-                this.AreaDetails.Address = areaInfo.WorldAreaDetailsRowPtr;
-                this.areaDetailsPtrCache = data.WorldAreaDetailsPtr;
-            }
+            // The wrapper can exist before its area row is ready. Follow the row itself so
+            // a later frame can publish it even if the wrapper address stays the same.
+            this.AreaDetails.Address = data.WorldAreaDetailsPtr != IntPtr.Zero &&
+                reader.TryReadMemory<WorldAreaDetailsStruct>(data.WorldAreaDetailsPtr, out var areaInfo)
+                    ? areaInfo.WorldAreaDetailsRowPtr
+                    : IntPtr.Zero;
 
             System.Threading.Volatile.Write(ref this.matrixSnap, new MatrixSnap(data.CameraStructurePtr.WorldToScreenMatrix));
         }
