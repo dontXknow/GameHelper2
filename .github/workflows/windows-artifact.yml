@@ -1,0 +1,54 @@
+name: Windows artifact
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore GameOverlay.sln --source https://api.nuget.org/v3/index.json
+      - name: Build Release solution
+        run: dotnet build GameOverlay.sln -c Release --no-restore
+      - name: Package and check the extracted build
+        id: package
+        shell: pwsh
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $package = ./scripts/New-WindowsArtifact.ps1 -OutputDirectory "$env:RUNNER_TEMP/release" -Revision $env:GITHUB_SHA
+          Expand-Archive -LiteralPath $package.Path -DestinationPath "$env:RUNNER_TEMP/extracted"
+          $runtime = "$env:RUNNER_TEMP/extracted/GameHelper"
+          $project = 'Verification/RuntimeCheck/RuntimeCheck.csproj'
+          dotnet restore $project --source https://api.nuget.org/v3/index.json
+          dotnet run --project $project -c Release --no-restore -- reader-tests $runtime "$env:RUNNER_TEMP/reader-check"
+          dotnet run --project $project -c Release --no-restore -- smoke $runtime "$env:RUNNER_TEMP/smoke-check"
+          "path=$($package.Path)" >> $env:GITHUB_OUTPUT
+          "sha256=$($package.SHA256)" >> $env:GITHUB_OUTPUT
+      - name: Upload the Windows ZIP
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: ${{ steps.package.outputs.path }}
+          archive: false
+          if-no-files-found: error
+          retention-days: 30
+      - name: Write download details
+        shell: pwsh
+        env:
+          DOWNLOAD: ${{ steps.upload.outputs.artifact-url }}
+          SHA256: ${{ steps.package.outputs.sha256 }}
+        run: |
+          "[Download the Windows x64 ZIP]($env:DOWNLOAD)" >> $env:GITHUB_STEP_SUMMARY
+          "SHA256: $env:SHA256" >> $env:GITHUB_STEP_SUMMARY

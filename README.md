@@ -4,6 +4,14 @@ GameHelper2 is a Windows x64 .NET overlay application with a plugin-based archit
 
 This guide is written for users who want to build and run the project from Visual Studio without using command-line tools.
 
+## Download a Windows build
+
+Open the latest successful [Windows artifact workflow run](https://github.com/dontXknow/GameHelper2/actions/workflows/windows-artifact.yml)
+and download its ZIP from **Artifacts** while signed in to GitHub. Extract the
+whole `GameHelper` folder. The ZIP includes a [German setup guide](release/README.md),
+the changelog, the launcher, and the plugins built by the solution. The build
+requires the [.NET 10 Desktop Runtime for Windows x64](https://dotnet.microsoft.com/en-us/download/dotnet/10.0).
+
 ## Required Tools
 
 Install these items before opening the project:
