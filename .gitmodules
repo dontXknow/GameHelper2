@@ -1,0 +1,3 @@
+[submodule "RunecraftHelper"]
+	path = Plugins/RunecraftHelper
+	url = https://github.com/yokkenUA/RunecraftHelper.git
